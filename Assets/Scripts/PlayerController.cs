@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
     private float camCurXRot;
     private Vector2 mouseDelta;
 
-
+    [SerializeField] private Animator anim;
     private PlayerInput playerInput;
     private Rigidbody rb;
     private CapsuleCollider capsule;
@@ -60,22 +60,12 @@ public class PlayerController : MonoBehaviour
         rb.velocity = dir;
     }
 
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        if (context.phase == InputActionPhase.Performed)
-        {
-            moveComposite = context.ReadValue<Vector2>();
-        }
-        else if (context.phase == InputActionPhase.Canceled)
-        {
-            moveComposite = Vector2.zero;
-        }
-    }
+
 
     public bool IsGrounded()
     {
         RaycastHit hit;
-        if(Physics.SphereCast(transform.position, capsule.radius, Vector3.down, out hit,
+        if (Physics.SphereCast(transform.position, capsule.radius, Vector3.down, out hit,
             (capsule.height / 2f) - capsule.radius + 0.1f))
         {
             return true;
@@ -88,7 +78,8 @@ public class PlayerController : MonoBehaviour
         if (playerInput.currentControlScheme == "Gamepad")
         {
             lookSensitivity = gamepadSensitivity;
-        } else
+        }
+        else
         {
             lookSensitivity = mouseSensitivity;
         }
@@ -113,10 +104,22 @@ public class PlayerController : MonoBehaviour
 
     public void OnLook(InputAction.CallbackContext context)
     {
-     
+
         mouseDelta = context.ReadValue<Vector2>();
     }
-
+    public void OnMove(InputAction.CallbackContext context)
+    {
+        if (context.phase == InputActionPhase.Performed)
+        {
+            anim.SetBool("isWalking", true);
+            moveComposite = context.ReadValue<Vector2>();
+        }
+        else if (context.phase == InputActionPhase.Canceled)
+        {
+            anim.SetBool("isWalking", false);
+            moveComposite = Vector2.zero;
+        }
+    }
     public void OnJump(InputAction.CallbackContext context)
     {
         if (context.phase == InputActionPhase.Started)
@@ -127,6 +130,34 @@ public class PlayerController : MonoBehaviour
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             }
 
+        }
+    }
+
+    public void OnFire(InputAction.CallbackContext context)
+    {
+        if (context.phase == InputActionPhase.Started)
+        {
+            anim.SetBool("isFiring", true);
+        }
+        else if (context.phase == InputActionPhase.Canceled)
+        {
+            anim.SetBool("isFiring", false);
+        }
+    }
+
+    public void OnReload(InputAction.CallbackContext context)
+    {
+        if(context.phase == InputActionPhase.Performed)
+        {
+            anim.SetTrigger("reload");
+        }
+    }
+
+    public void OnMelee(InputAction.CallbackContext context)
+    {
+        if(context.phase == InputActionPhase.Performed)
+        {
+            anim.SetTrigger("melee");
         }
     }
 
