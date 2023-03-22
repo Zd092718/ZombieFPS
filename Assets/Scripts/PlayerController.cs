@@ -5,6 +5,9 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip[] audioClips;
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed;
     [SerializeField] private float jumpForce;
@@ -32,6 +35,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         capsule = GetComponent<CapsuleCollider>();
         playerInput = GetComponent<PlayerInput>();
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void Start()
@@ -112,11 +116,13 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Performed)
         {
             anim.SetBool("isWalking", true);
+            InvokeRepeating("PlayFootstepAudio", 0, 0.4f);
             moveComposite = context.ReadValue<Vector2>();
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
             anim.SetBool("isWalking", false);
+            CancelInvoke("PlayFootstepAudio");
             moveComposite = Vector2.zero;
         }
     }
@@ -126,8 +132,9 @@ public class PlayerController : MonoBehaviour
         {
             if (IsGrounded())
             {
-
+                audioSource.PlayOneShot(audioClips[4]);
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                if(anim.GetBool("isWalking")) CancelInvoke("PlayFootstepAudio");
             }
 
         }
@@ -147,7 +154,7 @@ public class PlayerController : MonoBehaviour
 
     public void OnReload(InputAction.CallbackContext context)
     {
-        if(context.phase == InputActionPhase.Performed)
+        if (context.phase == InputActionPhase.Performed)
         {
             anim.SetTrigger("reload");
         }
@@ -155,10 +162,22 @@ public class PlayerController : MonoBehaviour
 
     public void OnMelee(InputAction.CallbackContext context)
     {
-        if(context.phase == InputActionPhase.Performed)
+        if (context.phase == InputActionPhase.Performed)
         {
             anim.SetTrigger("melee");
         }
     }
 
+    private void PlayFootstepAudio()
+    {
+
+        AudioClip footsteps = audioClips[Random.Range(0, 3)];
+        audioSource.PlayOneShot(footsteps);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(IsGrounded()) audioSource.PlayOneShot(audioClips[5]);
+        if(anim.GetBool("isWalking")) InvokeRepeating("PlayFootstepAudio", 0, 0.4f);
+    }
 }
