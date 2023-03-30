@@ -3,11 +3,7 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags:
-  - Ammo
-  - Health
-  - Medkit
-  - Hazard
+  tags: []
   layers:
   - Default
   - TransparentFX

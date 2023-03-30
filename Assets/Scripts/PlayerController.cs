@@ -1,17 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    #region Audio
-    [Header("Audio")]
-    private AudioSource audioSource;
+    [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip[] audioClips;
-    #endregion
-    #region Control
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed;
     [SerializeField] private float jumpForce;
@@ -28,21 +24,11 @@ public class PlayerController : MonoBehaviour
     private float lookSensitivity;
     private float camCurXRot;
     private Vector2 mouseDelta;
-    #endregion
-    #region Properties
+
     [SerializeField] private Animator anim;
     private PlayerInput playerInput;
     private Rigidbody rb;
     private CapsuleCollider capsule;
-    #endregion
-
-    [Header("Inventory")]
-    [SerializeField] private int ammo = 0;
-    [SerializeField] private int health = 80;
-    private int maxHealth = 100;
-    private int maxAmmo = 50;
-    [SerializeField] private int ammoMagazine = 0;
-    private int ammoMagazineMax = 15;
 
     private void Awake()
     {
@@ -77,6 +63,9 @@ public class PlayerController : MonoBehaviour
 
         rb.velocity = dir;
     }
+
+
+
     public bool IsGrounded()
     {
         RaycastHit hit;
@@ -116,45 +105,7 @@ public class PlayerController : MonoBehaviour
 
         Debug.Log(playerInput.currentControlScheme);
     }
-    private void PlayFootstepAudio()
-    {
 
-        AudioClip footsteps = audioClips[Random.Range(0, 3)];
-        audioSource.PlayOneShot(footsteps);
-    }
-    private void GetAmmo()
-    {
-        ammo = Mathf.Clamp(ammo + 10, 0, maxAmmo);
-    }
-
-    private void ExpendAmmo()
-    {
-        ammoMagazine = Mathf.Clamp(ammoMagazine - 1, 0, ammoMagazineMax);
-    }
-
-    private void Reload()
-    {
-        int ammoNeeded = ammoMagazineMax - ammoMagazine;
-        int ammoAvailable = ammoNeeded < ammo ? ammoNeeded : ammo;
-        ammo -= ammoAvailable;
-        ammoMagazine = ammoAvailable;
-    }
-
-    private void GetHealth()
-    {
-        health = Mathf.Clamp(health + 40, 0, maxHealth);
-    }
-
-    private void DepleteHealth(int damage)
-    {
-        health = Mathf.Clamp(health - damage, 0, maxHealth);
-        if (health <= 0)
-        {
-            audioSource.PlayOneShot(audioClips[5]);
-        }
-    }
-
-    #region Control Input Functions
     public void OnLook(InputAction.CallbackContext context)
     {
 
@@ -165,11 +116,13 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Performed)
         {
             anim.SetBool("isWalking", true);
+            InvokeRepeating("PlayFootstepAudio", 0, 0.4f);
             moveComposite = context.ReadValue<Vector2>();
         }
         else if (context.phase == InputActionPhase.Canceled)
         {
             anim.SetBool("isWalking", false);
+            CancelInvoke("PlayFootstepAudio");
             moveComposite = Vector2.zero;
         }
     }
@@ -179,8 +132,9 @@ public class PlayerController : MonoBehaviour
         {
             if (IsGrounded())
             {
-                audioSource.PlayOneShot(audioClips[0]);
+                audioSource.PlayOneShot(audioClips[4]);
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                if(anim.GetBool("isWalking")) CancelInvoke("PlayFootstepAudio");
             }
 
         }
@@ -188,17 +142,13 @@ public class PlayerController : MonoBehaviour
 
     public void OnFire(InputAction.CallbackContext context)
     {
-        if (context.phase == InputActionPhase.Performed && !anim.GetBool("fire"))
+        if (context.phase == InputActionPhase.Started)
         {
-            if (ammoMagazine > 0)
-            {
-                anim.SetTrigger("fire");
-                ExpendAmmo();
-            }
-            else
-            {
-                audioSource.PlayOneShot(audioClips[4]);
-            }
+            anim.SetBool("isFiring", true);
+        }
+        else if (context.phase == InputActionPhase.Canceled)
+        {
+            anim.SetBool("isFiring", false);
         }
     }
 
@@ -207,7 +157,6 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Performed)
         {
             anim.SetTrigger("reload");
-            Reload();
         }
     }
 
@@ -218,34 +167,17 @@ public class PlayerController : MonoBehaviour
             anim.SetTrigger("melee");
         }
     }
-    #endregion
+
+    private void PlayFootstepAudio()
+    {
+
+        AudioClip footsteps = audioClips[Random.Range(0, 3)];
+        audioSource.PlayOneShot(footsteps);
+    }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (IsGrounded()) audioSource.PlayOneShot(audioClips[1]);
-
-
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Ammo"))
-        {
-            Destroy(other.gameObject);
-            audioSource.PlayOneShot(audioClips[3]);
-            GetAmmo();
-            Debug.Log("Picked up ammo");
-        }
-        if (other.CompareTag("Medkit"))
-        {
-            Destroy(other.gameObject);
-            audioSource.PlayOneShot(audioClips[2]);
-            GetHealth();
-            Debug.Log("Picked up medkit");
-        }
-        if (other.CompareTag("Hazard"))
-        {
-            DepleteHealth(10);
-        }
+        if(IsGrounded()) audioSource.PlayOneShot(audioClips[5]);
+        if(anim.GetBool("isWalking")) InvokeRepeating("PlayFootstepAudio", 0, 0.4f);
     }
 }
